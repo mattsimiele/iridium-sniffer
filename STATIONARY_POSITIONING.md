@@ -37,6 +37,9 @@ application on Linux and runs the solver on Linux/macOS with ASan/UBSan.
 
 ## Record and replay
 
+For N310 raw IQ acquisition, use the standalone [N310 capture script and guide](N310_CAPTURE.md).
+It checks GPSDO lock, schedules hardware time, detects discontinuities and writes SigMF.
+
 Build the application normally (FFTW required; suitable SDR backend for live use).
 Add these options to the normal receive command:
 
