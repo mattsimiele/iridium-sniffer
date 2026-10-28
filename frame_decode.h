@@ -26,18 +26,7 @@ typedef enum {
     FRAME_VOC,
 } frame_type_t;
 
-typedef struct {
-    int sat_id;
-    int beam_id;
-    double lat, lon;
-    int alt;                /* km */
-    int pos_xyz[3];         /* raw 12-bit signed XYZ (Doppler positioning) */
-    int n_pages;
-    struct {
-        uint32_t tmsi;
-        int msc_id;
-    } pages[12];            /* max 12 paging blocks per IRA */
-} ira_data_t;
+#include "ira_data.h"
 
 typedef struct {
     int sat_id;

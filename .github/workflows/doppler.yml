@@ -1,0 +1,48 @@
+name: Stationary Doppler regression
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  replay:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: make -f Makefile.doppler test
+      - run: |
+          cc -O1 -g -std=c99 -D_DEFAULT_SOURCE -Wall -Wextra -Werror -fsanitize=address,undefined tests/test_doppler.c -o build-doppler/test-sanitize -lm -pthread
+          ./build-doppler/test-sanitize
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libfftw3-dev
+      - run: cmake -S . -B build -DUSE_OPENCL=OFF -DUSE_VULKAN=OFF
+      - run: cmake --build build -j2
+      - run: ./build/iridium-sniffer --help
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y python3-uhd python3-numpy
+      - run: /usr/bin/python3 tests/test_capture_n310.py
+      - run: /usr/bin/python3 tools/capture_n310.py --help
+      - name: UHD Python API smoke test (no radio)
+        run: |
+          /usr/bin/python3 - <<'PYTHON'
+          import uhd
+          t = uhd.types.TimeSpec(1790000000, 0.5)
+          assert t.get_full_secs() == 1790000000
+          assert t.get_frac_secs() == 0.5
+          a = uhd.usrp.StreamArgs('fc32', 'sc16')
+          a.channels = [0]
+          c = uhd.types.StreamCMD(uhd.types.StreamMode.start_cont)
+          c.stream_now = False
+          c.time_spec = t
+          m = uhd.types.RXMetadata()
+          assert hasattr(m, 'has_time_spec') and hasattr(m, 'out_of_sequence')
+          from tools.capture_n310 import uhd_version
+          print(uhd_version(uhd))
+          PYTHON
