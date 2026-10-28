@@ -9,6 +9,9 @@
 #define __WGS84_H__
 
 #include <math.h>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 /* WGS-84 ellipsoid parameters */
 #define WGS84_A     6378137.0              /* semi-major axis (m) */

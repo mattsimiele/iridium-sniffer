@@ -5,3 +5,6 @@ build/
 .cache/
 compile_commands.json
 test-data/
+
+/build-doppler/
+__pycache__/

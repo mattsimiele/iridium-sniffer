@@ -179,6 +179,8 @@ int parsed_mode = 0;
 int use_chase = 0;
 int position_enabled = 0;
 double position_height = 0;
+char *position_log_path = NULL;
+static FILE *position_log = NULL;
 int acars_enabled = 0;
 int voice_enabled = 0;
 char *station_id = NULL;
@@ -651,10 +653,16 @@ static void *output_thread_fn(void *arg) {
                             pthread_mutex_unlock(&beam_cache_lock);
                         }
                     }
-                    if (position_enabled)
-                        doppler_pos_add_measurement(&decoded.ira,
-                                                     decoded.frequency,
-                                                     decoded.timestamp);
+                    if (position_enabled) {
+                        if (position_log && decoded.ira.alt >= 700 && decoded.ira.alt <= 900) {
+                            if (fprintf(position_log, "%llu,%d,%d,%d,%d,%.17g,50\n",
+                                (unsigned long long)decoded.timestamp, decoded.ira.sat_id,
+                                decoded.ira.pos_xyz[0], decoded.ira.pos_xyz[1],
+                                decoded.ira.pos_xyz[2], decoded.frequency) < 0 || fflush(position_log))
+                                err(1, "position log write failed");
+                        }
+                        doppler_pos_add_measurement(&decoded.ira, decoded.frequency, decoded.timestamp);
+                    }
                 } else if (decoded.type == FRAME_IBC) {
                     if (web_enabled)
                         web_map_add_sat(&decoded.ibc, decoded.timestamp);
@@ -888,14 +896,16 @@ static void *stats_thread_fn(void *arg) {
         if (position_enabled && (int)elapsed % 10 == 0 && elapsed > 5) {
             doppler_solution_t sol;
             if (doppler_pos_solve(&sol)) {
-                fprintf(stderr, "POSITION: %.6f, %.6f (HDOP=%.1f, %d sats, %d meas)\n",
-                        sol.lat, sol.lon, sol.hdop, sol.n_satellites,
+                fprintf(stderr, "POSITION: %.6f, %.6f (conditional sigma=%.0f m, %d sats, %d meas)\n",
+                        sol.lat, sol.lon, sol.horizontal_sigma_m, sol.n_satellites,
                         sol.n_measurements);
                 if (web_enabled)
-                    web_map_set_position(sol.lat, sol.lon, sol.hdop);
-            } else if ((int)elapsed % 60 == 0) {
-                fprintf(stderr, "POSITION: waiting (%d sats, %d meas)\n",
-                        sol.n_satellites, sol.n_measurements);
+                    web_map_set_position(sol.lat, sol.lon, sol.horizontal_sigma_m);
+            } else {
+                if (web_enabled) web_map_set_position(NAN, NAN, NAN);
+                if ((int)elapsed % 60 == 0)
+                    fprintf(stderr, "POSITION: %s (%d sats, %d meas)\n",
+                            doppler_status_name(sol.status), sol.n_satellites, sol.n_measurements);
             }
         }
 
@@ -990,6 +1000,12 @@ int main(int argc, char **argv) {
 
     if (position_enabled) {
         doppler_pos_init();
+        if (position_log_path) {
+            position_log = fopen(position_log_path, "wx");
+            if (!position_log) err(1, "Cannot create position log");
+            if (fputs("timestamp_ns,sat_id,x4km,y4km,z4km,frequency_hz,sigma_hz\n", position_log) < 0 || fflush(position_log))
+                err(1, "position log header failed");
+        }
         /* Height aiding defaults to 0m (sea level) unless user specifies
          * a value.  Required to prevent solver diverging to extreme altitude
          * when satellite geometry is poor. */

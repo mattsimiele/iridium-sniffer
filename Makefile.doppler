@@ -1,0 +1,16 @@
+CC ?= cc
+CFLAGS ?= -O2 -g
+WARN = -std=c99 -D_DEFAULT_SOURCE -Wall -Wextra -Werror
+LDLIBS = -lm -pthread
+.PHONY: test clean
+build-doppler:
+	mkdir -p $@
+build-doppler/test: tests/test_doppler.c doppler_pos.c doppler_pos.h ira_data.h wgs84.h | build-doppler
+	$(CC) $(CFLAGS) $(WARN) $< -o $@ $(LDLIBS)
+build-doppler/replay: tools/doppler_replay.c doppler_pos.c doppler_pos.h ira_data.h wgs84.h | build-doppler
+	$(CC) $(CFLAGS) $(WARN) -I. tools/doppler_replay.c doppler_pos.c -o $@ $(LDLIBS)
+test: build-doppler/test build-doppler/replay
+	./build-doppler/test
+	python3 tests/test_replay.py
+clean:
+	rm -rf build-doppler

@@ -155,7 +155,7 @@ static struct {
     unsigned long total_acars_msgs;
     /* Doppler positioning receiver estimate */
     double rx_lat, rx_lon;
-    double rx_hdop;
+    double rx_horizontal_sigma_m;
     int rx_valid;
 } state;
 
@@ -285,13 +285,13 @@ void web_map_add_sat(const ibc_data_t *ibc, uint64_t timestamp)
     pthread_mutex_unlock(&state.lock);
 }
 
-void web_map_set_position(double lat, double lon, double hdop)
+void web_map_set_position(double lat, double lon, double horizontal_sigma_m)
 {
     pthread_mutex_lock(&state.lock);
     state.rx_lat = lat;
     state.rx_lon = lon;
-    state.rx_hdop = hdop;
-    state.rx_valid = 1;
+    state.rx_horizontal_sigma_m = horizontal_sigma_m;
+    state.rx_valid = isfinite(lat) && isfinite(lon) && isfinite(horizontal_sigma_m);
     pthread_mutex_unlock(&state.lock);
 }
 
@@ -677,8 +677,8 @@ static int build_json(char *buf, int bufsize)
     /* Receiver position estimate (Doppler positioning) */
     if (state.rx_valid) {
         off += snprintf(buf + off, bufsize - off,
-            ",\"rx\":{\"lat\":%.6f,\"lon\":%.6f,\"hdop\":%.1f}",
-            state.rx_lat, state.rx_lon, state.rx_hdop);
+            ",\"rx\":{\"lat\":%.6f,\"lon\":%.6f,\"horizontal_sigma_m\":%.1f}",
+            state.rx_lat, state.rx_lon, state.rx_horizontal_sigma_m);
     }
 
     /* Recent ACARS messages (chronological feed) */
@@ -1356,10 +1356,10 @@ static const char HTML_PAGE[] =
 "    });\n"
 "    rm.bindPopup('<div class=\"popup-title\">Receiver Position</div>'\n"
 "      +'Estimated: '+d.rx.lat.toFixed(6)+', '+d.rx.lon.toFixed(6)+'<br>'\n"
-"      +'HDOP: '+d.rx.hdop.toFixed(1));\n"
+"      +'Conditional horizontal sigma (m): '+d.rx.horizontal_sigma_m.toFixed(1));\n"
 "    rm.addTo(rxLy);\n"
-"    if(d.rx.hdop<50){\n"
-"      L.circle([d.rx.lat,d.rx.lon],{radius:d.rx.hdop*20,\n"
+"    if(d.rx.horizontal_sigma_m<10000){\n"
+"      L.circle([d.rx.lat,d.rx.lon],{radius:d.rx.horizontal_sigma_m,\n"
 "        color:'#22c55e',fillColor:'#22c55e',\n"
 "        fillOpacity:0.1,weight:1,dashArray:'4'}).addTo(rxLy);\n"
 "    }\n"

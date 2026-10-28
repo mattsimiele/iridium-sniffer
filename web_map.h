@@ -35,7 +35,7 @@ void web_map_add_ra(const ira_data_t *ra, uint64_t timestamp,
 void web_map_add_sat(const ibc_data_t *ibc, uint64_t timestamp);
 
 /* Set estimated receiver position from Doppler positioning. Thread-safe. */
-void web_map_set_position(double lat, double lon, double hdop);
+void web_map_set_position(double lat, double lon, double horizontal_sigma_m);
 
 /* Add an MT (mobile terminal) position. Thread-safe. */
 void web_map_add_mt(double lat, double lon, int alt, uint16_t msg_type,

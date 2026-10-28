@@ -1,3 +1,4 @@
+#include <math.h>
 /*
  * Command-line option parsing
  *
@@ -111,6 +112,7 @@ extern int use_gardner;
 extern int parsed_mode;
 extern int position_enabled;
 extern double position_height;
+extern char *position_log_path;
 extern int acars_enabled;
 extern int acars_json;
 extern int voice_enabled;
@@ -202,6 +204,7 @@ static void usage(int exitcode) {
 "\n"
 "Web map:\n"
 "    --web[=PORT]            enable live web map (default port: 8888)\n"
+"    --position-log=PATH    create replay observation CSV (exclusive create)\n"
 "    --position[=HEIGHT_M]   estimate receiver position from Doppler shift\n"
 "                             optional height aiding in meters (implies --web)\n"
 "    --voice                 decode Iridium voice calls (AMBE, implies --web)\n"
@@ -307,6 +310,7 @@ void parse_options(int argc, char **argv) {
         OPT_NO_GARDNER,
         OPT_PARSED,
         OPT_POSITION,
+        OPT_POSITION_LOG,
         OPT_ACARS,
         OPT_ACARS_JSON,
         OPT_ACARS_UDP,
@@ -361,6 +365,7 @@ void parse_options(int argc, char **argv) {
         { "gardner",        no_argument,       NULL, OPT_GARDNER },
         { "no-gardner",     no_argument,       NULL, OPT_NO_GARDNER },
         { "parsed",         no_argument,       NULL, OPT_PARSED },
+        { "position-log", required_argument, NULL, OPT_POSITION_LOG },
         { "position",       optional_argument, NULL, OPT_POSITION },
         { "acars",          no_argument,       NULL, OPT_ACARS },
         { "acars-json",     no_argument,       NULL, OPT_ACARS_JSON },
@@ -557,13 +562,18 @@ void parse_options(int argc, char **argv) {
                 parsed_mode = 1;
                 break;
 
+            case OPT_POSITION_LOG:
+                position_log_path = optarg;
+                position_enabled = 1;
+                break;
             case OPT_POSITION:
                 position_enabled = 1;
                 web_enabled = 1;  /* position implies web map */
                 if (optarg) {
-                    position_height = atof(optarg);
-                    if (position_height < 0 || position_height > 9000)
-                        errx(1, "--position height must be 0-9000 m (got %.0f)",
+                    char *end;
+                    position_height = strtod(optarg, &end);
+                    if (*end || end == optarg || !isfinite(position_height) || position_height < -500 || position_height > 9000)
+                        errx(1, "--position height must be -500 to 9000 m (got %.0f)",
                              position_height);
                 }
                 break;
