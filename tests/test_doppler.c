@@ -25,7 +25,8 @@ int main(int argc,char **argv) {
     for(int i=0;i<49;i++){double v[3];state(i*5,0,tr.obs[i].p,v);tr.obs[i].t=(1000+i*5)*NS;tr.count++;}
     for(int i=0;i<49;i++) {
         double p[3],v[3],truth[3],tv[3],d[3];assert(orbit_state(&tr,i,p,v));state(i*5,0,truth,tv);
-        for(int j=0;j<3;j++)d[j]=v[j]-tv[j];assert(norm(d)<3);
+        for(int j=0;j<3;j++)d[j]=v[j]-tv[j];
+        assert(norm(d)<3);
     }
     double x[4];geodetic_to_ecef(40,-75,100,x);x[3]=12;
     measurement m={0};state(70,1,m.p,m.v);double h[4];predict(&m,x,h);
