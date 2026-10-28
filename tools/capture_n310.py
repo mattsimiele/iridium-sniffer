@@ -86,6 +86,15 @@ def sync_epoch(radio, uhd, emit):
     raise CaptureError('PPS/device epoch does not agree with gps_time')
 
 
+def uhd_version(uhd):
+    # Older distro bindings do not re-export get_version_string at top level.
+    for namespace in (uhd, getattr(uhd, 'libpyuhd', None)):
+        getter = getattr(namespace, 'get_version_string', None)
+        if callable(getter):
+            return str(getter())
+    return str(getattr(uhd, '__version__', 'unavailable; save uhd_config_info --version separately'))
+
+
 def metadata(actual, requested, hardware):
     return {'global': {
         'core:datatype': 'ci16_le', 'core:sample_rate': actual['rate'],
@@ -229,7 +238,7 @@ def capture(a, uhd, np):
     meta_path = a.output/'capture.sigmf-meta'
     requested = {k:str(v) if isinstance(v,Path) else v for k,v in vars(a).items()}
     meta = metadata(actual, requested, radio.get_pp_string())
-    meta['global']['n310_capture:uhd_version'] = str(uhd.get_version_string())
+    meta['global']['n310_capture:uhd_version'] = uhd_version(uhd)
     save_meta(meta_path, meta)
     with (a.output/'capture.events.jsonl').open('x') as events:
         def emit(event, **fields):

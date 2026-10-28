@@ -43,5 +43,6 @@ jobs:
           c.time_spec = t
           m = uhd.types.RXMetadata()
           assert hasattr(m, 'has_time_spec') and hasattr(m, 'out_of_sequence')
-          print(uhd.get_version_string())
+          from tools.capture_n310 import uhd_version
+          print(uhd_version(uhd))
           PYTHON

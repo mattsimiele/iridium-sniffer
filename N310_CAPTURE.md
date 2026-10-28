@@ -16,7 +16,8 @@ packages are `python3-uhd` and `python3-numpy`; use `/usr/bin/python3` to access
 them. Avoid unrelated PyPI packages named `uhd`.
 
 ```sh
-/usr/bin/python3 -c 'import uhd, numpy; print(uhd.get_version_string())'
+/usr/bin/python3 -c 'import uhd, numpy; print(uhd.__file__)'
+uhd_config_info --version
 ```
 
 Connect the Iridium antenna to the selected RF channel's RX2 input. Connect an
@@ -67,7 +68,7 @@ It aborts if it cannot keep up. No hardware capture has been validated by CI.
   and saturation. Conversion saturation makes the run fail. This conversion is
   explicit and is not a claim of bit-identical sc16 wire preservation.
 - `capture.sigmf-meta`: sample rate, frequency, UTC start, hardware description,
-  UHD version, requested/actual parameters, hardware start tick, written sample
+  UHD version when exposed by the bindings (otherwise save `uhd_config_info --version`), requested/actual parameters, hardware start tick, written sample
   count and completion state. Project-specific fields use `n310_capture:`.
 - `capture.events.jsonl`: every receive buffer's hardware timestamp in integer
   sample ticks, expected tick, count, signed sample discrepancy, UHD error and

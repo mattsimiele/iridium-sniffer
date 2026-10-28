@@ -200,6 +200,11 @@ class CaptureTests(unittest.TestCase):
                 # No overwrite of an existing run, even via the library entry point.
                 with self.assertRaises(FileExistsError): c.capture(a,uhd,np)
 
+    def test_older_uhd_version(self):
+        self.assertEqual(c.uhd_version(NS(libpyuhd=NS(get_version_string=lambda:'4.6'))),'4.6')
+        self.assertEqual(c.uhd_version(NS(__version__='4.4')),'4.4')
+        self.assertIn('unavailable',c.uhd_version(NS()))
+
     def test_atomic_metadata(self):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'capture.sigmf-meta'
